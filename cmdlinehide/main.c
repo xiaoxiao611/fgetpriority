@@ -15,6 +15,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/kstrtox.h>
 #include <linux/string.h>
 #include <linux/init.h>
 
@@ -48,17 +49,19 @@ static int swap_inplace(char *base, const char *needle, const char *repl)
 static int __init ch_init(void)
 {
     char *cmdline;
+    unsigned long addr;
 
     if (!kallsyms_fn || !*kallsyms_fn) {
         pr_info("cmdlinehide: kallsyms_lookup_name_fn not given\n");
         return -EINVAL;
     }
 
-    kln = (void *)simple_strtoull(kallsyms_fn, NULL, 16);
-    if (!kln) {
-        pr_info("cmdlinehide: bad kallsyms address\n");
+    /* simple_strtoull 在 5.10+ 已移除，用 kstrtoul */
+    if (kstrtoul(kallsyms_fn, 16, &addr) || !addr) {
+        pr_info("cmdlinehide: bad kallsyms address '%s'\n", kallsyms_fn);
         return -EINVAL;
     }
+    kln = (void *)addr;
 
     cmdline = (char *)kln("saved_command_line");
     if (!cmdline) {

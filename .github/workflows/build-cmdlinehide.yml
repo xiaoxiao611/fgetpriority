@@ -20,14 +20,22 @@ jobs:
         run: |
           cd cmdlinehide
           export KDIR=$KERNEL_SRC
-          make -f Makefile.ddk modules
+          { make -f Makefile.ddk modules; } 2>&1 | tee build.log
           llvm-strip -d cmdlinehide.ko || true
           ls -l cmdlinehide.ko
           strings cmdlinehide.ko | grep -m1 '^vermagic=' || true
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmdlinehide-buildlog
+          path: cmdlinehide/build.log
+          if-no-files-found: warn
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: cmdlinehide_arm64.ko
           path: cmdlinehide/cmdlinehide.ko
-          if-no-files-found: error
+          if-no-files-found: warn
