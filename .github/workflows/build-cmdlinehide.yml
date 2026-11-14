@@ -1,0 +1,33 @@
+name: Build cmdlinehide
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'cmdlinehide/**'
+
+jobs:
+  build:
+    name: Build cmdlinehide (android14-6.1)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ylarod/ddk:android14-6.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build for android14-6.1
+        run: |
+          cd cmdlinehide
+          export KDIR=$KERNEL_SRC
+          make -f Makefile.ddk modules
+          llvm-strip -d cmdlinehide.ko || true
+          ls -l cmdlinehide.ko
+          strings cmdlinehide.ko | grep -m1 '^vermagic=' || true
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmdlinehide_arm64.ko
+          path: cmdlinehide/cmdlinehide.ko
+          if-no-files-found: error
